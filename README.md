@@ -76,7 +76,8 @@ register duplicate aliases; it uses UI/event adapters instead. It cannot reliabl
 replace an arbitrary third-party process, a browser dialog, or a UI call made
 before this extension is loaded. Unsupported question tools are left untouched
 instead of being silently blocked. When the toggle is `OFF`, supported UI
-adapters delegate back to Pi's native UI.
+adapters delegate back to Pi's native UI and the canonical decision tool is
+removed from Pi's active tool list.
 
 ## Security
 

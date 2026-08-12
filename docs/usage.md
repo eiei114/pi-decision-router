@@ -59,7 +59,8 @@ Decision Router: ON | Enter /decision-router-toggle to switch
 ```
 
 Run `/decision-router-toggle` and press Enter to switch between `ON` and `OFF`.
-While `OFF`, supported UI adapters delegate to Pi's native dialogs and the
+While `OFF`, the canonical `decision_request` tool is removed from the active
+tool list, supported UI adapters delegate to Pi's native dialogs, and the
 router does not inject its automatic-decision guidance into the agent prompt.
 The toggle lasts for the current Pi process only; use
 `PI_DECISION_ROUTER_ENABLED=0` for a disabled startup.

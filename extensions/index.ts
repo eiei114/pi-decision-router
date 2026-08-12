@@ -111,6 +111,7 @@ interface UiShimState {
 interface DecisionRuntime {
   context?: ExtensionContext;
   pendingCustomDecision?: Promise<unknown>;
+  canonicalToolWasActive?: boolean;
 }
 
 const uiShimStates = new WeakMap<object, UiShimState>();
@@ -127,6 +128,30 @@ function updateStatus(ctx: ExtensionContext, router: DecisionRouter): void {
 function setEnabled(router: DecisionRouter, ctx: ExtensionContext, enabled: boolean): void {
   router.config.enabled = enabled;
   updateStatus(ctx, router);
+}
+
+function syncCanonicalTool(pi: ExtensionAPI, runtime: DecisionRuntime, enabled: boolean): void {
+  const api = pi as unknown as {
+    getActiveTools?: () => string[];
+    setActiveTools?: (toolNames: string[]) => void;
+  };
+  if (typeof api.getActiveTools !== "function" || typeof api.setActiveTools !== "function") return;
+
+  const activeTools = api.getActiveTools.call(pi);
+  if (enabled) {
+    if (runtime.canonicalToolWasActive && !activeTools.includes("decision_request")) {
+      api.setActiveTools.call(pi, [...activeTools, "decision_request"]);
+    }
+    runtime.canonicalToolWasActive = undefined;
+    return;
+  }
+
+  if (runtime.canonicalToolWasActive === undefined) {
+    runtime.canonicalToolWasActive = activeTools.includes("decision_request");
+  }
+  if (activeTools.includes("decision_request")) {
+    api.setActiveTools.call(pi, activeTools.filter((name) => name !== "decision_request"));
+  }
 }
 
 function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: DecisionRuntime): void {
@@ -366,6 +391,7 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
     handler: async (_args, ctx) => {
       runtime.context = ctx;
       setEnabled(router, ctx, !router.config.enabled);
+      syncCanonicalTool(pi, runtime, router.config.enabled);
       installUiShim(ctx, router, runtime);
       if (ctx.hasUI) {
         ctx.ui.notify(
@@ -397,6 +423,7 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
   pi.on("session_start", async (_event, ctx) => {
     runtime.context = ctx;
     installUiShim(ctx, router, runtime);
+    syncCanonicalTool(pi, runtime, router.config.enabled);
     updateStatus(ctx, router);
   });
 

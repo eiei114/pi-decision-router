@@ -38,6 +38,7 @@ test("routes Pi UI dialogs and rpiv questionnaire events", async () => {
     const status = [];
     const notifications = [];
     const nativeCalls = { select: 0 };
+    let activeTools = ["decision_request"];
     const ui = {
       async select() { nativeCalls.select += 1; return "native"; },
       async confirm() { return false; },
@@ -50,6 +51,8 @@ test("routes Pi UI dialogs and rpiv questionnaire events", async () => {
     const pi = {
       registerTool(tool) { tools.push(tool); },
       registerCommand(name, command) { commands.set(name, command); },
+      getActiveTools() { return activeTools; },
+      setActiveTools(names) { activeTools = names; },
       on(name, handler) { lifecycle.set(name, handler); },
       appendEntry() {},
       events: {
@@ -99,12 +102,14 @@ test("routes Pi UI dialogs and rpiv questionnaire events", async () => {
     assert.ok(toggle, "toggle command should be registered");
     await toggle.handler("", ctx);
     assert.match(status.at(-1)[1], /Decision Router: \[OFF\]/);
+    assert.deepEqual(activeTools, [], "disabled router should hide its canonical tool");
     await ui.select("Native", ["native"]);
     assert.equal(nativeCalls.select, 1, "disabled router should delegate to native UI");
     assert.match(notifications.at(-1)[0], /Pi Decision Router: OFF/);
 
     await toggle.handler("", ctx);
     assert.match(status.at(-1)[1], /Decision Router: \[ON\]/);
+    assert.deepEqual(activeTools, ["decision_request"], "enabled router should restore its canonical tool");
     await ui.select("Choose again", ["First", "Second (Recommended)"]);
     assert.equal(nativeCalls.select, 1, "enabled router should intercept UI again");
   } finally {
