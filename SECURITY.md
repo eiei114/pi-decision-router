@@ -6,15 +6,12 @@ Only the latest published version receives security fixes.
 
 ## Reporting a vulnerability
 
-Open a private security advisory on GitHub, or contact the maintainer by the preferred channel listed in the repository profile.
+Open a private GitHub security advisory. Include the affected version, impact,
+reproduction steps, and a suggested fix if known.
 
-Please include:
+## Important behavior
 
-- Affected version
-- Impact
-- Reproduction steps
-- Suggested fix, if known
-
-## Pi package security note
-
-Pi packages can execute code with local user permissions. Review installed packages and avoid running untrusted extensions.
+This extension can auto-approve confirmations and can execute a child Pi process.
+The child is started with no tools and no project resources, but the parent still
+controls its model credentials and audit-log destination. Review configuration and
+protect the JSONL audit log.

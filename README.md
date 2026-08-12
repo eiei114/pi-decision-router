@@ -1,81 +1,85 @@
-# Pi Extension Template
+# Pi Decision Router
 
-[![Join dotfield.xyz on Discord](https://img.shields.io/badge/Join%20dotfield.xyz%20on%20Discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/4945dXZVW5)
-
-[![CI](https://github.com/eiei114/pi-extension-template/actions/workflows/ci.yml/badge.svg)](https://github.com/eiei114/pi-extension-template/actions/workflows/ci.yml)
-[![Publish](https://github.com/eiei114/pi-extension-template/actions/workflows/publish.yml/badge.svg)](https://github.com/eiei114/pi-extension-template/actions/workflows/publish.yml)
-[![npm version](https://img.shields.io/npm/v/create-pi-extension.svg)](https://www.npmjs.com/package/create-pi-extension)
-[![npm downloads](https://img.shields.io/npm/dm/create-pi-extension.svg)](https://www.npmjs.com/package/create-pi-extension)
+[![CI](https://github.com/eiei114/pi-decision-router/actions/workflows/ci.yml/badge.svg)](https://github.com/eiei114/pi-decision-router/actions/workflows/ci.yml)
+[![Publish](https://github.com/eiei114/pi-decision-router/actions/workflows/publish.yml/badge.svg)](https://github.com/eiei114/pi-decision-router/actions/workflows/publish.yml)
+[![npm version](https://img.shields.io/npm/v/pi-decision-router.svg)](https://www.npmjs.com/package/pi-decision-router)
+[![npm downloads](https://img.shields.io/npm/dm/pi-decision-router.svg)](https://www.npmjs.com/package/pi-decision-router)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Pi package](https://img.shields.io/badge/pi-package-purple.svg)](https://pi.dev/packages)
 [![Trusted Publishing](https://img.shields.io/badge/npm-Trusted%20Publishing-blue.svg)](docs/release.md)
-<a href="https://buymeacoffee.com/ekawano114m"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="217" height="60"></a>
 
-> Template for building Pi packages with extensions, Agent Skills, prompts, and themes.
+> Route Pi questions and confirmations to a child Pi agent, then keep an audit trail.
 
 ## What this is
 
-This repository is the **template source** for new Pi extension OSS projects. The published npm package is [`create-pi-extension`](https://www.npmjs.com/package/create-pi-extension), not the root `pi-extension-template` name.
+`pi-decision-router` removes routine human-choice UI from unattended Pi runs. It
+registers one conflict-free canonical decision tool, adapts common question-tool
+shapes through Pi UI/event hooks, asks a tool-disabled child Pi for the decision,
+and falls back to the recommended option when the child is unavailable.
+
+This is intentionally generic. It does not depend on gstack and does not modify
+gstack itself.
 
 ## Features
 
-- Interactive `create-pi-extension` CLI for scoped and unscoped package names.
-- TypeScript-first examples for extensions, Agent Skills, prompts, themes, tools, and TUI components.
-- GitHub Actions CI, npm Trusted Publishing, security policy, issue templates, and release automation.
-- Canonical public README with standard badges, install paths, quick start, package contents, and security guidance.
-- Canonical scaffold README shared by CLI-first generation and the GitHub Template setup checklist.
+- Adapts `question`, `questionnaire`, `ask_question`, `ask_user_question`, and `AskUserQuestion` when their host exposes supported Pi UI/event hooks.
+- Auto-answers `ctx.ui.select()`, `ctx.ui.confirm()`, and `ctx.ui.input()` when the active Pi context can be patched.
+- Uses a child `pi --print --no-tools` process with strict JSON output.
+- Persists JSONL decisions outside the vault for auditability.
+- Never gives the child agent tools, extensions, skills, project context, or a session.
+- Uses recommended/default/positive options first, then the first option as a deterministic fallback.
 
 ## Install
 
-Create a new Pi extension package with the published CLI:
-
 ```bash
-bunx create-pi-extension@latest my-pi-package
+pi install npm:pi-decision-router
 ```
 
-## Quick start
-
-### Primary path (recommended)
-
-Scaffold a new project with the CLI:
+For local development:
 
 ```bash
-bunx create-pi-extension my-pi-package
+pi -e C:/path/to/pi-decision-router/extensions/index.ts
 ```
 
-The CLI copies the bundled template, replaces placeholders, removes bootstrap docs, and can run `git init` plus `bun install`. See [`docs/template-checklist.md`](docs/template-checklist.md) for the minimal follow-up checklist.
+## Configuration
 
-For a scoped package name:
+The package is enabled by default for unattended operation.
 
-```bash
-bunx create-pi-extension @my-scope/my-pi-tool
+| Variable | Default | Purpose |
+|---|---:|---|
+| `PI_DECISION_ROUTER_ENABLED` | `1` | Set `0` to disable routing. |
+| `PI_DECISION_ROUTER_CHILD` | `1` | Set `0` to skip the child and use fallback decisions. |
+| `PI_DECISION_ROUTER_TIMEOUT_MS` | `45000` | Child decision timeout. |
+| `PI_DECISION_ROUTER_MODEL` | current model | Child Pi model pattern or ID. |
+| `PI_DECISION_ROUTER_PROVIDER` | current provider | Child Pi provider. |
+| `PI_DECISION_ROUTER_PI_BIN` | auto | Explicit Pi executable path. |
+| `PI_DECISION_ROUTER_AUDIT_LOG` | `~/.pi/agent/pi-decision-router/audit.jsonl` | JSONL audit path. |
+
+Useful commands:
+
+```text
+/decision-router-status
+/decision-router-log
 ```
 
-### Secondary path: GitHub Template
+## Runtime boundary
 
-Create a repository from this template when you prefer GitHub-first onboarding:
+Pi's public extension API can intercept registered tool calls and patch the
+`ctx.ui` object supplied to active extension contexts. Multiple packages may
+already own the same question-tool name, so this package deliberately does not
+register duplicate aliases; it uses UI/event adapters instead. It cannot reliably
+replace an arbitrary third-party process, a browser dialog, or a UI call made
+before this extension is loaded. Unsupported question tools are left untouched
+instead of being silently blocked.
 
-```bash
-gh repo create OWNER/my-pi-package \
-  --template eiei114/pi-extension-template \
-  --clone
-```
+## Security
 
-Then follow the **Secondary path** section in [`docs/template-checklist.md`](docs/template-checklist.md) for manual placeholder replacement, metadata, and post-generation cleanup.
-That checklist first copies `scaffold/package-readme.md` to `README.md`, giving GitHub Template users the same standard badges and README structure as CLI-generated packages.
+This package intentionally auto-approves routine decisions, including destructive
+confirmation dialogs, when configured for unattended use. The child agent runs
+without tools, but it still receives the question and a bounded recent-conversation
+excerpt. Review the package before installing it and protect the audit log.
 
-## Legacy npm package
-
-Do **not** use `pi install npm:pi-extension-template` as the main onboarding path. Use **`create-pi-extension`** to scaffold a new project instead. The legacy root-package install will be removed from npm in a future release. After you publish your own extension, install it with `pi install npm:YOUR_PACKAGE_NAME` as documented in that project's README.
-
-## Package contents
-
-| Path | Purpose |
-|---|---|
-| Repository root | Template source (not published to npm) |
-| `packages/create-pi-extension/` | Published scaffold CLI |
-| `scaffold/` | Generated-package README source synced into the bundled template |
-| `docs/` | Maintainer docs and template bootstrap guides |
+See [`docs/usage.md`](docs/usage.md) for the decision contract and failure modes.
 
 ## Development
 
@@ -84,36 +88,29 @@ npm install
 npm run ci
 ```
 
-`npm run ci` runs typecheck, `sync:template`, CLI scaffold tests, a `create-pi-extension` pack check, and template sync assertions.
+Run the local extension in Pi:
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`docs/template-sync.md`](docs/template-sync.md).
+```bash
+pi -e .
+```
 
 ## Release
 
-Releases publish **`create-pi-extension`** to npm through Trusted Publishing. The root template source is not published.
+The package uses npm Trusted Publishing through GitHub Actions. No `NPM_TOKEN`
+is required.
 
-See [`docs/release.md`](docs/release.md) for setup details.
+```bash
+npm version patch
+git push
+```
 
-## Docs
-
-- [`docs/template-checklist.md`](docs/template-checklist.md) — Primary vs Secondary setup flows
-- [`docs/template-sync.md`](docs/template-sync.md) — refresh `packages/create-pi-extension/template/` before CLI publish
-- [`docs/template-sync-checklist.md`](docs/template-sync-checklist.md) — checklist for syncing and verifying the bundled template
-- [`docs/examples.md`](docs/examples.md) — extension, skill, prompt, and theme examples
-- [`docs/release.md`](docs/release.md) — Trusted Publishing and monorepo publish path
-- [`ROADMAP.md`](ROADMAP.md) — current status, priorities, and the maintenance seed backlog
-
-## Security
-
-Pi packages can execute code with your local permissions. Review extensions before installing third-party packages.
-
-For vulnerability reporting, see [`SECURITY.md`](SECURITY.md).
+See [`docs/release.md`](docs/release.md).
 
 ## Links
 
-- npm (`create-pi-extension`): https://www.npmjs.com/package/create-pi-extension
-- GitHub: https://github.com/eiei114/pi-extension-template
-- Issues: https://github.com/eiei114/pi-extension-template/issues
+- npm: https://www.npmjs.com/package/pi-decision-router
+- GitHub: https://github.com/eiei114/pi-decision-router
+- Issues: https://github.com/eiei114/pi-decision-router/issues
 
 ## License
 
