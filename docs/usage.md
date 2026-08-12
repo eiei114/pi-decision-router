@@ -55,7 +55,7 @@ rejects same-name custom tools from different extensions.
 The router starts `ON` by default. The status bar displays the current state:
 
 ```text
-Decision Router: ON | Enter /decision-router-toggle to switch
+Decision Router: [ON] | Enter /decision-router-toggle to switch
 ```
 
 Run `/decision-router-toggle` and press Enter to switch between `ON` and `OFF`.
