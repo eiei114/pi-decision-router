@@ -137,20 +137,24 @@ function syncCanonicalTool(pi: ExtensionAPI, runtime: DecisionRuntime, enabled: 
   };
   if (typeof api.getActiveTools !== "function" || typeof api.setActiveTools !== "function") return;
 
-  const activeTools = api.getActiveTools.call(pi);
-  if (enabled) {
-    if (runtime.canonicalToolWasActive && !activeTools.includes("decision_request")) {
-      api.setActiveTools.call(pi, [...activeTools, "decision_request"]);
+  try {
+    const activeTools = api.getActiveTools.call(pi);
+    if (enabled) {
+      if (runtime.canonicalToolWasActive && !activeTools.includes("decision_request")) {
+        api.setActiveTools.call(pi, [...activeTools, "decision_request"]);
+      }
+      runtime.canonicalToolWasActive = undefined;
+      return;
     }
-    runtime.canonicalToolWasActive = undefined;
-    return;
-  }
 
-  if (runtime.canonicalToolWasActive === undefined) {
-    runtime.canonicalToolWasActive = activeTools.includes("decision_request");
-  }
-  if (activeTools.includes("decision_request")) {
-    api.setActiveTools.call(pi, activeTools.filter((name) => name !== "decision_request"));
+    if (runtime.canonicalToolWasActive === undefined) {
+      runtime.canonicalToolWasActive = activeTools.includes("decision_request");
+    }
+    if (activeTools.includes("decision_request")) {
+      api.setActiveTools.call(pi, activeTools.filter((name) => name !== "decision_request"));
+    }
+  } catch {
+    // Tool activation is best effort and must not break Pi startup or toggling.
   }
 }
 
