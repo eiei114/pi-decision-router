@@ -29,6 +29,8 @@ gstack itself.
 - Never gives the child agent tools, extensions, skills, project context, or a session.
 - Uses recommended/default/positive options first, then the first option as a deterministic fallback.
 - Shows an `ON`/`OFF` status-bar toggle; run `/decision-router-toggle` and press Enter to switch it.
+- After a turn ends, warns and forces compaction at 95% context usage; 100% is treated as an emergency threshold.
+- Resumes an interrupted tool-driven task with a hidden follow-up after compaction, then lets Pi produce the final response.
 
 ## Install
 
@@ -50,6 +52,9 @@ The package is enabled by default for unattended operation.
 |---|---:|---|
 | `PI_DECISION_ROUTER_ENABLED` | `1` | Set `0` to disable routing. |
 | `PI_DECISION_ROUTER_CHILD` | `1` | Set `0` to skip the child and use fallback decisions. |
+| `PI_DECISION_ROUTER_AUTO_COMPACTION` | `1` | Set `0` to disable the router's post-turn compaction trigger. |
+| `PI_DECISION_ROUTER_COMPACTION_THRESHOLD_PERCENT` | `95` | Context percentage that triggers compaction after a turn. |
+| `PI_DECISION_ROUTER_COMPACTION_EMERGENCY_PERCENT` | `100` | Emergency percentage; bypasses the one-compaction-per-cycle guard. |
 | `PI_DECISION_ROUTER_TIMEOUT_MS` | `45000` | Child decision timeout. |
 | `PI_DECISION_ROUTER_MODEL` | current model | Child Pi model pattern or ID. |
 | `PI_DECISION_ROUTER_PROVIDER` | current provider | Child Pi provider. |
@@ -66,6 +71,21 @@ Useful commands:
 
 The toggle is enabled by default for each Pi process. Its state is runtime-only;
 set `PI_DECISION_ROUTER_ENABLED=0` when Pi should start with routing disabled.
+
+### Automatic compaction
+
+Automatic compaction is enabled by default. At the end of a Pi turn, when
+`ctx.getContextUsage()` reports at least 95%, the extension shows a warning,
+starts compaction, and shows completion. At 100% it uses the emergency path, so
+the next completed turn is always eligible even if the previous high-context
+turn already armed a compaction cycle.
+
+When the compacted turn contained tool calls or tool results, the extension
+queues a hidden `followUp` message after compaction. Pi then continues the
+interrupted work and produces the final response. A normal final assistant turn
+does not receive a duplicate response. Pi's native threshold compaction remains
+active too; the router adds an explicit post-turn 95%/100% trigger and does not
+change Pi's global compaction settings.
 
 ## Runtime boundary
 

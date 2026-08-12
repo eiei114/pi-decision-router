@@ -66,7 +66,10 @@ const EXTERNAL_QUESTION_TOOL_NAMES = [
   "AskUserQuestion",
 ];
 const STATUS_KEY = "pi-decision-router";
+const COMPACTION_STATUS_KEY = "pi-decision-router-compaction";
 const TOGGLE_COMMAND = "/decision-router-toggle";
+const AUTO_COMPACTION_CONTINUATION =
+  "Automatic context compaction completed. Continue the interrupted task using the preserved context and provide the final response. Do not ask the user to repeat the original request.";
 
 function contentText(content: unknown): string {
   if (typeof content === "string") return content;
@@ -112,6 +115,14 @@ interface DecisionRuntime {
   context?: ExtensionContext;
   pendingCustomDecision?: Promise<unknown>;
   canonicalToolWasActive?: boolean;
+  autoCompaction: AutoCompactionState;
+}
+
+interface AutoCompactionState {
+  armed: boolean;
+  inFlight: boolean;
+  requestedPercent?: number;
+  resumeAfterCompaction: boolean;
 }
 
 const uiShimStates = new WeakMap<object, UiShimState>();
@@ -156,6 +167,136 @@ function syncCanonicalTool(pi: ExtensionAPI, runtime: DecisionRuntime, enabled: 
   } catch {
     // Tool activation is best effort and must not break Pi startup or toggling.
   }
+}
+
+function contextPercent(ctx: ExtensionContext): number | undefined {
+  const percent = ctx.getContextUsage()?.percent;
+  return typeof percent === "number" && Number.isFinite(percent) ? percent : undefined;
+}
+
+function hasToolCall(message: unknown): boolean {
+  if (!message || typeof message !== "object") return false;
+  const content = (message as { content?: unknown }).content;
+  return Array.isArray(content) && content.some((block) => (
+    block && typeof block === "object" && (block as { type?: unknown }).type === "toolCall"
+  ));
+}
+
+function setCompactionStatus(ctx: ExtensionContext, text: string | undefined): void {
+  if (ctx.hasUI) ctx.ui.setStatus(COMPACTION_STATUS_KEY, text);
+}
+
+function compactionStartMessage(percent: number | undefined, emergency: boolean): string {
+  if (percent === undefined) return "Context compaction starting before the next response.";
+  const urgency = emergency ? "Emergency context limit reached" : "Context usage is high";
+  return `${urgency} (${percent.toFixed(1)}%). Compacting before continuing.`;
+}
+
+function finishAutoCompaction(
+  pi: ExtensionAPI,
+  router: DecisionRouter,
+  runtime: DecisionRuntime,
+  ctx: ExtensionContext,
+  willRetry = false,
+): void {
+  const state = runtime.autoCompaction;
+  if (!state.inFlight) return;
+
+  const resume = state.resumeAfterCompaction && !willRetry && router.config.enabled;
+  state.inFlight = false;
+  state.armed = true;
+  state.requestedPercent = undefined;
+  state.resumeAfterCompaction = false;
+  setCompactionStatus(ctx, undefined);
+
+  if (ctx.hasUI) {
+    ctx.ui.notify(
+      resume
+        ? "Context compaction complete. Continuing with the final response."
+        : "Context compaction complete.",
+      "info",
+    );
+  }
+
+  if (resume) {
+    pi.sendMessage(
+      {
+        customType: "pi-decision-router-compaction",
+        content: AUTO_COMPACTION_CONTINUATION,
+        display: false,
+        details: { source: "pi-decision-router", continuation: true },
+      },
+      { deliverAs: "followUp", triggerTurn: true },
+    );
+  }
+}
+
+function failAutoCompaction(runtime: DecisionRuntime, ctx: ExtensionContext, error: Error): void {
+  const state = runtime.autoCompaction;
+  if (!state.inFlight) return;
+  state.inFlight = false;
+  state.armed = true;
+  state.requestedPercent = undefined;
+  state.resumeAfterCompaction = false;
+  setCompactionStatus(ctx, undefined);
+  if (ctx.hasUI) ctx.ui.notify(`Context compaction failed: ${error.message}`, "error");
+}
+
+function triggerAutoCompaction(
+  pi: ExtensionAPI,
+  router: DecisionRouter,
+  runtime: DecisionRuntime,
+  ctx: ExtensionContext,
+  percent: number,
+  resumeAfterCompaction: boolean,
+): void {
+  const state = runtime.autoCompaction;
+  if (state.inFlight) return;
+
+  state.armed = false;
+  state.inFlight = true;
+  state.requestedPercent = percent;
+  state.resumeAfterCompaction = resumeAfterCompaction;
+  setCompactionStatus(ctx, `compacting at ${percent.toFixed(1)}%`);
+
+  try {
+    ctx.compact({
+      onComplete: () => finishAutoCompaction(pi, router, runtime, ctx),
+      onError: (error) => failAutoCompaction(runtime, ctx, error),
+    });
+  } catch (error) {
+    failAutoCompaction(runtime, ctx, error instanceof Error ? error : new Error(String(error)));
+  }
+}
+
+function maybeTriggerAutoCompaction(
+  pi: ExtensionAPI,
+  router: DecisionRouter,
+  runtime: DecisionRuntime,
+  event: { message: unknown; toolResults: unknown[] },
+  ctx: ExtensionContext,
+): void {
+  if (!router.config.enabled || !router.config.autoCompactionEnabled) return;
+
+  const percent = contextPercent(ctx);
+  if (percent === undefined) return;
+
+  const threshold = Math.min(router.config.autoCompactionThresholdPercent, router.config.autoCompactionEmergencyPercent);
+  const emergency = percent >= router.config.autoCompactionEmergencyPercent;
+  if (percent < threshold) {
+    runtime.autoCompaction.armed = true;
+    return;
+  }
+  if (!runtime.autoCompaction.armed && !emergency) return;
+
+  triggerAutoCompaction(
+    pi,
+    router,
+    runtime,
+    ctx,
+    percent,
+    event.toolResults.length > 0 || hasToolCall(event.message),
+  );
 }
 
 function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: DecisionRuntime): void {
@@ -383,7 +524,13 @@ function registerDecisionTool(pi: ExtensionAPI, router: DecisionRouter, name: st
 
 export default function decisionRouterExtension(pi: ExtensionAPI): void {
   const router = new DecisionRouter({ config: loadConfig() });
-  const runtime: DecisionRuntime = {};
+  const runtime: DecisionRuntime = {
+    autoCompaction: {
+      armed: true,
+      inFlight: false,
+      resumeAfterCompaction: false,
+    },
+  };
 
   for (const name of REGISTERED_TOOL_NAMES) {
     registerDecisionTool(pi, router, name);
@@ -426,9 +573,35 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
 
   pi.on("session_start", async (_event, ctx) => {
     runtime.context = ctx;
+    runtime.autoCompaction.armed = true;
+    runtime.autoCompaction.inFlight = false;
+    runtime.autoCompaction.requestedPercent = undefined;
+    runtime.autoCompaction.resumeAfterCompaction = false;
     installUiShim(ctx, router, runtime);
     syncCanonicalTool(pi, runtime, router.config.enabled);
     updateStatus(ctx, router);
+  });
+
+  pi.on("turn_end", (event, ctx) => {
+    maybeTriggerAutoCompaction(pi, router, runtime, event, ctx);
+  });
+
+  pi.on("session_before_compact", async (event, ctx) => {
+    if (!router.config.enabled) return;
+
+    const autoCompaction = runtime.autoCompaction.inFlight && event.reason === "manual";
+    const percent = autoCompaction ? runtime.autoCompaction.requestedPercent : undefined;
+    const emergency = percent !== undefined && percent >= router.config.autoCompactionEmergencyPercent;
+    if (runtime.autoCompaction.inFlight && event.reason !== "manual") {
+      // Let the explicitly scheduled manual compaction own the operation. This
+      // avoids racing Pi's native threshold compaction after turn_end.
+      return { cancel: true };
+    }
+
+    if (ctx.hasUI) {
+      ctx.ui.notify(compactionStartMessage(percent, emergency), "warning");
+    }
+    setCompactionStatus(ctx, percent === undefined ? "compacting" : `compacting at ${percent.toFixed(1)}%`);
   });
 
   pi.on("before_agent_start", async (event) => {
@@ -454,6 +627,9 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
           `enabled: ${router.config.enabled}`,
           `toggle: ${TOGGLE_COMMAND} (press Enter to switch)`,
           `child: ${router.config.childEnabled}`,
+          `auto compaction: ${router.config.autoCompactionEnabled}`,
+          `compaction threshold: ${router.config.autoCompactionThresholdPercent}%`,
+          `compaction emergency: ${router.config.autoCompactionEmergencyPercent}%`,
           `timeout: ${router.config.timeoutMs}ms`,
           `audit: ${router.config.auditLogPath}`,
           `registered tool: ${REGISTERED_TOOL_NAMES.join(", ")}`,

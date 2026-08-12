@@ -9,5 +9,10 @@ that routine confirmations are no longer human gates.
 - The audit log is local JSONL, not encrypted, and may contain sensitive text.
 - Unknown question tools are not blocked; they remain visible so a caller does
   not receive a fabricated answer from an unsupported schema.
+- Automatic compaction can abort the current agent run after a turn and queue a
+  hidden follow-up. Review this behavior if your workflow treats compaction or
+  continuation as a human approval boundary.
+- The compaction warning and status are UI feedback only. They do not prevent
+  the model from continuing when UI is unavailable (print/RPC modes).
 
 Use `PI_DECISION_ROUTER_ENABLED=0` for an interactive run.

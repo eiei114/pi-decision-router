@@ -122,3 +122,97 @@ test("routes Pi UI dialogs and rpiv questionnaire events", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("compacts after a high-context turn and resumes interrupted work", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pi-decision-router-compaction-"));
+  const previousChild = process.env.PI_DECISION_ROUTER_CHILD;
+  const previousEnabled = process.env.PI_DECISION_ROUTER_ENABLED;
+  const previousAudit = process.env.PI_DECISION_ROUTER_AUDIT_LOG;
+  process.env.PI_DECISION_ROUTER_CHILD = "0";
+  process.env.PI_DECISION_ROUTER_ENABLED = "1";
+  process.env.PI_DECISION_ROUTER_AUDIT_LOG = join(directory, "audit.jsonl");
+
+  try {
+    const lifecycle = new Map();
+    const compactCalls = [];
+    const messages = [];
+    const notifications = [];
+    const statuses = [];
+    let usagePercent = 95.2;
+    const ui = {
+      async select() { return "native"; },
+      async confirm() { return false; },
+      async input() { return "native"; },
+      async editor() { return "native"; },
+      async custom() { return undefined; },
+      notify(message, type) { notifications.push([message, type]); },
+      setStatus(key, value) { statuses.push([key, value]); },
+    };
+    const pi = {
+      registerTool() {},
+      registerCommand() {},
+      on(name, handler) { lifecycle.set(name, handler); },
+      appendEntry() {},
+      sendMessage(message, options) { messages.push([message, options]); },
+      getActiveTools() { return ["decision_request"]; },
+      setActiveTools() {},
+      events: { on() { return () => {}; } },
+    };
+    extension(pi);
+
+    const ctx = {
+      cwd: directory,
+      mode: "tui",
+      hasUI: true,
+      signal: undefined,
+      model: undefined,
+      getContextUsage() {
+        return { tokens: usagePercent, contextWindow: 100, percent: usagePercent };
+      },
+      compact(options) { compactCalls.push(options); },
+      sessionManager: { getBranch: () => [] },
+      ui,
+    };
+    await lifecycle.get("session_start")({}, ctx);
+
+    const turnEnd = lifecycle.get("turn_end");
+    const beforeCompact = lifecycle.get("session_before_compact");
+    const highContextTurn = {
+      message: { role: "assistant", content: [{ type: "toolCall", name: "bash" }] },
+      toolResults: [{ role: "toolResult" }],
+    };
+
+    await turnEnd(highContextTurn, ctx);
+    await turnEnd(highContextTurn, ctx);
+    assert.equal(compactCalls.length, 1, "one compaction should be scheduled per high-context cycle");
+
+    const beforeResult = await beforeCompact({ reason: "manual" }, ctx);
+    assert.equal(beforeResult, undefined);
+    assert.match(notifications.at(-1)[0], /95\.2%/);
+    assert.match(statuses.at(-1)[1], /compacting at 95\.2%/);
+
+    compactCalls[0].onComplete();
+    assert.match(notifications.at(-1)[0], /continuing with the final response/i);
+    assert.equal(messages.length, 1, "interrupted tool work should resume after compaction");
+    assert.equal(messages[0][1].deliverAs, "followUp");
+    assert.equal(messages[0][1].triggerTurn, true);
+    assert.equal(statuses.at(-1)[1], undefined);
+
+    usagePercent = 40;
+    await turnEnd({ message: { role: "assistant", content: [{ type: "text", text: "done" }] }, toolResults: [] }, ctx);
+    usagePercent = 100;
+    await turnEnd({ message: { role: "assistant", content: [{ type: "text", text: "final" }] }, toolResults: [] }, ctx);
+    assert.equal(compactCalls.length, 2, "100% usage should force the next compaction");
+
+    compactCalls[1].onComplete();
+    assert.equal(messages.length, 1, "a final assistant turn should not receive a duplicate reply");
+  } finally {
+    if (previousChild === undefined) delete process.env.PI_DECISION_ROUTER_CHILD;
+    else process.env.PI_DECISION_ROUTER_CHILD = previousChild;
+    if (previousEnabled === undefined) delete process.env.PI_DECISION_ROUTER_ENABLED;
+    else process.env.PI_DECISION_ROUTER_ENABLED = previousEnabled;
+    if (previousAudit === undefined) delete process.env.PI_DECISION_ROUTER_AUDIT_LOG;
+    else process.env.PI_DECISION_ROUTER_AUDIT_LOG = previousAudit;
+    await rm(directory, { recursive: true, force: true });
+  }
+});

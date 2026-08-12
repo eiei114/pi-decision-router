@@ -65,6 +65,30 @@ router does not inject its automatic-decision guidance into the agent prompt.
 The toggle lasts for the current Pi process only; use
 `PI_DECISION_ROUTER_ENABLED=0` for a disabled startup.
 
+## Automatic compaction
+
+The router enables its own post-turn compaction trigger by default:
+
+1. `turn_end` reads `ctx.getContextUsage().percent`.
+2. At `95%` or higher, it displays a warning before compaction starts.
+3. At `100%`, it uses the emergency path and does not wait for a fresh low-usage cycle.
+4. After compaction, it displays completion.
+5. If the interrupted turn had tool calls or tool results, it queues a hidden
+   `followUp` message so Pi continues and returns the final response.
+
+The environment variables are:
+
+```text
+PI_DECISION_ROUTER_AUTO_COMPACTION=1
+PI_DECISION_ROUTER_COMPACTION_THRESHOLD_PERCENT=95
+PI_DECISION_ROUTER_COMPACTION_EMERGENCY_PERCENT=100
+```
+
+Set `PI_DECISION_ROUTER_AUTO_COMPACTION=0` to leave only Pi's native compaction
+behavior. The router does not replace Pi's native threshold compaction or change
+the global `reserveTokens`/`keepRecentTokens` settings. Context usage is only
+available when Pi reports it; if it is unknown, the router does nothing.
+
 ## Audit log
 
 Default path:
