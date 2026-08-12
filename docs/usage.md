@@ -50,6 +50,20 @@ outside the active context, or in another process cannot be guaranteed to route.
 The package does not register duplicate `AskUserQuestion` aliases because Pi
 rejects same-name custom tools from different extensions.
 
+## Runtime toggle
+
+The router starts `ON` by default. The status bar displays the current state:
+
+```text
+Decision Router: ON | Enter /decision-router-toggle to switch
+```
+
+Run `/decision-router-toggle` and press Enter to switch between `ON` and `OFF`.
+While `OFF`, supported UI adapters delegate to Pi's native dialogs and the
+router does not inject its automatic-decision guidance into the agent prompt.
+The toggle lasts for the current Pi process only; use
+`PI_DECISION_ROUTER_ENABLED=0` for a disabled startup.
+
 ## Audit log
 
 Default path:

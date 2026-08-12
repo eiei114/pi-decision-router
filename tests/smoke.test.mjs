@@ -16,4 +16,5 @@ test("README keeps the unattended boundary visible", async () => {
   assert.match(readme, /--no-tools/);
   assert.match(readme, /does not\nregister duplicate aliases/);
   assert.match(readme, /auto-approves routine decisions/);
+  assert.match(readme, /decision-router-toggle/);
 });

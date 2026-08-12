@@ -65,6 +65,8 @@ const EXTERNAL_QUESTION_TOOL_NAMES = [
   "ask_user_question",
   "AskUserQuestion",
 ];
+const STATUS_KEY = "pi-decision-router";
+const TOGGLE_COMMAND = "/decision-router-toggle";
 
 function contentText(content: unknown): string {
   if (typeof content === "string") return content;
@@ -99,6 +101,11 @@ interface UiShimState {
   context: ExtensionContext;
   router: DecisionRouter;
   runtime: DecisionRuntime;
+  originalSelect: ExtensionUIContext["select"];
+  originalConfirm: ExtensionUIContext["confirm"];
+  originalInput: ExtensionUIContext["input"];
+  originalEditor: ExtensionUIContext["editor"];
+  originalCustom: ExtensionUIContext["custom"];
 }
 
 interface DecisionRuntime {
@@ -108,8 +115,22 @@ interface DecisionRuntime {
 
 const uiShimStates = new WeakMap<object, UiShimState>();
 
+function statusText(router: DecisionRouter): string {
+  const state = router.config.enabled ? "ON" : "OFF";
+  return `Decision Router: [${state}] | Enter ${TOGGLE_COMMAND} to switch`;
+}
+
+function updateStatus(ctx: ExtensionContext, router: DecisionRouter): void {
+  if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, statusText(router));
+}
+
+function setEnabled(router: DecisionRouter, ctx: ExtensionContext, enabled: boolean): void {
+  router.config.enabled = enabled;
+  updateStatus(ctx, router);
+}
+
 function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: DecisionRuntime): void {
-  if (!ctx.hasUI || !router.config.enabled) return;
+  if (!ctx.hasUI) return;
 
   const existing = uiShimStates.get(ctx.ui);
   if (existing) {
@@ -120,11 +141,21 @@ function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: D
   }
 
   const ui = ctx.ui as ExtensionUIContext;
-  const state: UiShimState = { context: ctx, router, runtime };
+  const state: UiShimState = {
+    context: ctx,
+    router,
+    runtime,
+    originalSelect: ui.select.bind(ui),
+    originalConfirm: ui.confirm.bind(ui),
+    originalInput: ui.input.bind(ui),
+    originalEditor: ui.editor.bind(ui),
+    originalCustom: ui.custom.bind(ui),
+  };
 
   const select = async (title: string, options: string[], opts?: ExtensionUIDialogOptions) => {
     const activeContext = state.context;
     const activeRouter = state.router;
+    if (!activeRouter.config.enabled) return state.originalSelect(title, options, opts);
     const request = normalizeDecisionInput(
       "ctx.ui.select",
       { question: title, options, allowOther: false },
@@ -139,6 +170,7 @@ function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: D
   const confirm = async (title: string, message: string, opts?: ExtensionUIDialogOptions) => {
     const activeContext = state.context;
     const activeRouter = state.router;
+    if (!activeRouter.config.enabled) return state.originalConfirm(title, message, opts);
     const request = normalizeDecisionInput(
       "ctx.ui.confirm",
       {
@@ -159,6 +191,7 @@ function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: D
   const input = async (title: string, placeholder?: string, opts?: ExtensionUIDialogOptions) => {
     const activeContext = state.context;
     const activeRouter = state.router;
+    if (!activeRouter.config.enabled) return state.originalInput(title, placeholder, opts);
     const request = normalizeDecisionInput(
       "ctx.ui.input",
       {
@@ -175,6 +208,7 @@ function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: D
   const editor = async (title: string, prefill?: string) => {
     const activeContext = state.context;
     const activeRouter = state.router;
+    if (!activeRouter.config.enabled) return state.originalEditor(title, prefill);
     const request = normalizeDecisionInput(
       "ctx.ui.editor",
       {
@@ -193,23 +227,47 @@ function installUiShim(ctx: ExtensionContext, router: DecisionRouter, runtime: D
     ui.confirm = confirm;
     ui.input = input;
     ui.editor = editor;
-    const originalCustom = ui.custom.bind(ui);
     ui.custom = (async (
       factory: Parameters<ExtensionUIContext["custom"]>[0],
       options?: Parameters<ExtensionUIContext["custom"]>[1],
     ) => {
+      if (!state.router.config.enabled) {
+        state.runtime.pendingCustomDecision = undefined;
+        return await state.originalCustom(factory, options);
+      }
       const pending = state.runtime.pendingCustomDecision;
       if (pending) {
         state.runtime.pendingCustomDecision = undefined;
         return await pending;
       }
-      return await originalCustom(factory, options);
+      return await state.originalCustom(factory, options);
     }) as ExtensionUIContext["custom"];
     uiShimStates.set(ctx.ui, state);
   } catch {
     // Some hosts may freeze the UI object. Leave that host's native dialogs intact.
   }
 
+}
+
+async function auditToggle(router: DecisionRouter, cwd: string, enabled: boolean): Promise<void> {
+  try {
+    await appendAuditEvent(router.config.auditLogPath, {
+      timestamp: new Date().toISOString(),
+      cwd,
+      toolName: "decision-router-toggle",
+      questions: [{ id: "enabled", prompt: "Enable unattended decisions?", options: ["on", "off"] }],
+      answers: [{
+        id: "enabled",
+        value: enabled ? "on" : "off",
+        label: enabled ? "ON" : "OFF",
+        source: "fallback",
+        reason: "Manual toggle command.",
+      }],
+      child: { attempted: false, status: "disabled" },
+    });
+  } catch {
+    // A toggle must not fail because the audit path is unavailable.
+  }
 }
 
 function rpivResult(request: ReturnType<typeof normalizeDecisionInput>, result: Awaited<ReturnType<DecisionRouter["decide"]>>): unknown {
@@ -303,6 +361,22 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
   }
   registerRpivAdapter(pi, router, runtime);
 
+  pi.registerCommand("decision-router-toggle", {
+    description: "Toggle unattended decisions on/off (press Enter to switch)",
+    handler: async (_args, ctx) => {
+      runtime.context = ctx;
+      setEnabled(router, ctx, !router.config.enabled);
+      installUiShim(ctx, router, runtime);
+      if (ctx.hasUI) {
+        ctx.ui.notify(
+          `Pi Decision Router: ${router.config.enabled ? "ON" : "OFF"}\nEnter ${TOGGLE_COMMAND} again to switch.`,
+          "info",
+        );
+      }
+      await auditToggle(router, ctx.cwd, router.config.enabled);
+    },
+  });
+
   pi.on("project_trust", async (event) => {
     if (!router.config.enabled) return { trusted: "undecided" as const };
     try {
@@ -323,16 +397,17 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
   pi.on("session_start", async (_event, ctx) => {
     runtime.context = ctx;
     installUiShim(ctx, router, runtime);
-    if (ctx.hasUI) {
-      ctx.ui.setStatus("pi-decision-router", router.config.enabled ? "unattended decisions enabled" : "disabled");
-    }
+    updateStatus(ctx, router);
   });
 
-  pi.on("before_agent_start", async (event) => ({
-    systemPrompt:
-      event.systemPrompt +
-      "\n\n[pi-decision-router] Routine questions and confirmations are handled automatically. Use the available decision-router question tool when a structured choice is required; do not wait for a human response.",
-  }));
+  pi.on("before_agent_start", async (event) => {
+    if (!router.config.enabled) return;
+    return {
+      systemPrompt:
+        event.systemPrompt +
+        "\n\n[pi-decision-router] Routine questions and confirmations are handled automatically. Use the available decision-router question tool when a structured choice is required; do not wait for a human response.",
+    };
+  });
 
   pi.on("tool_call", async (_event, ctx) => {
     runtime.context = ctx;
@@ -346,6 +421,7 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
       ctx.ui.notify(
         [
           `enabled: ${router.config.enabled}`,
+          `toggle: ${TOGGLE_COMMAND} (press Enter to switch)`,
           `child: ${router.config.childEnabled}`,
           `timeout: ${router.config.timeoutMs}ms`,
           `audit: ${router.config.auditLogPath}`,

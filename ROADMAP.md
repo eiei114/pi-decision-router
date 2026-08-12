@@ -9,6 +9,7 @@
 - [x] Best-effort `ctx.ui.select/confirm/input` shim.
 - [x] Project-trust auto-approval for unattended sessions.
 - [x] Status and audit-log commands.
+- [x] Runtime ON/OFF toggle with native UI delegation while disabled.
 
 ## v0.2 — stronger integration
 

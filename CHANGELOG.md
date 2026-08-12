@@ -8,3 +8,4 @@
 - Tool-disabled child Pi delegation with deterministic fallback.
 - JSONL audit logging and status/log commands.
 - Best-effort UI dialog shim and project-trust auto-approval.
+- Runtime `/decision-router-toggle` command with visible `ON`/`OFF` status.

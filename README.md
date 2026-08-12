@@ -28,6 +28,7 @@ gstack itself.
 - Persists JSONL decisions outside the vault for auditability.
 - Never gives the child agent tools, extensions, skills, project context, or a session.
 - Uses recommended/default/positive options first, then the first option as a deterministic fallback.
+- Shows an `ON`/`OFF` status-bar toggle; run `/decision-router-toggle` and press Enter to switch it.
 
 ## Install
 
@@ -60,7 +61,11 @@ Useful commands:
 ```text
 /decision-router-status
 /decision-router-log
+/decision-router-toggle
 ```
+
+The toggle is enabled by default for each Pi process. Its state is runtime-only;
+set `PI_DECISION_ROUTER_ENABLED=0` when Pi should start with routing disabled.
 
 ## Runtime boundary
 
@@ -70,7 +75,8 @@ already own the same question-tool name, so this package deliberately does not
 register duplicate aliases; it uses UI/event adapters instead. It cannot reliably
 replace an arbitrary third-party process, a browser dialog, or a UI call made
 before this extension is loaded. Unsupported question tools are left untouched
-instead of being silently blocked.
+instead of being silently blocked. When the toggle is `OFF`, supported UI
+adapters delegate back to Pi's native UI.
 
 ## Security
 
