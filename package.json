@@ -1,6 +1,6 @@
 {
   "name": "pi-decision-router",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Route Pi questions and confirmations to a child Pi agent with deterministic fallback and JSONL audit logging.",
   "type": "module",
   "license": "MIT",
