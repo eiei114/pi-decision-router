@@ -69,8 +69,12 @@ Useful commands:
 /decision-router-toggle
 ```
 
-The toggle is enabled by default for each Pi process. Its state is runtime-only;
-set `PI_DECISION_ROUTER_ENABLED=0` when Pi should start with routing disabled.
+The toggle switches Router Mode — routing and auto compaction together — and
+remembers the choice per project directory in
+`~/.pi/agent/pi-decision-router/state.json`, so new sessions in the same
+directory restore it. An explicit `PI_DECISION_ROUTER_ENABLED=0` (or
+`PI_DECISION_ROUTER_AUTO_COMPACTION`) still wins over the persisted state when
+Pi should start with a deterministic configuration.
 
 ### Automatic compaction
 

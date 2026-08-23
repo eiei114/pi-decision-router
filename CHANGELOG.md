@@ -6,6 +6,11 @@
 
 - Post-turn automatic compaction at configurable 95% and 100% context thresholds.
 - Pre-compaction warning, completion status, and hidden continuation for interrupted tool work.
+- Persisted Router Mode: `/decision-router-toggle` saves `{enabled,
+  autoCompactionEnabled}` per project directory in
+  `~/.pi/agent/pi-decision-router/state.json` and restores it at session start;
+  explicit environment variables keep precedence over persisted state.
+- `CONTEXT.md` glossary and ADR 0001 documenting the storage decision.
 
 ## [0.1.0] - 2026-08-12
 

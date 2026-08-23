@@ -6,6 +6,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { appendAuditEvent, readAuditTail } from "../lib/audit.ts";
 import { loadConfig } from "../lib/config.ts";
+import { modeStatePath, readPersistedMode, writePersistedMode } from "../lib/mode-state.ts";
 import { answerText } from "../lib/fallback.ts";
 import { DecisionRouter, formatDecisionResult, modelHintFromContext } from "../lib/router.ts";
 import { normalizeDecisionInput } from "../lib/normalize.ts";
@@ -136,8 +137,26 @@ function updateStatus(ctx: ExtensionContext, router: DecisionRouter): void {
   if (ctx.hasUI) ctx.ui.setStatus(STATUS_KEY, statusText(router));
 }
 
-function setEnabled(router: DecisionRouter, ctx: ExtensionContext, enabled: boolean): void {
+function envExplicitlySet(name: string): boolean {
+  return process.env[name] !== undefined;
+}
+
+async function restorePersistedMode(router: DecisionRouter, cwd: string, ctx?: ExtensionContext): Promise<void> {
+  const persisted = await readPersistedMode(modeStatePath(), cwd);
+  if (!persisted) return;
+  // Explicit environment variables win over Persisted Mode so CI and autopilot
+  // runs stay deterministic regardless of stale manual toggles.
+  if (!envExplicitlySet("PI_DECISION_ROUTER_ENABLED")) router.config.enabled = persisted.enabled;
+  if (!envExplicitlySet("PI_DECISION_ROUTER_AUTO_COMPACTION")) {
+    router.config.autoCompactionEnabled = persisted.autoCompactionEnabled;
+  }
+  if (ctx) updateStatus(ctx, router);
+}
+
+function setRouterMode(router: DecisionRouter, ctx: ExtensionContext, enabled: boolean): void {
+  // Router Mode is one switch: routing and auto-compaction flip together.
   router.config.enabled = enabled;
+  router.config.autoCompactionEnabled = enabled;
   updateStatus(ctx, router);
 }
 
@@ -425,13 +444,22 @@ async function auditToggle(router: DecisionRouter, cwd: string, enabled: boolean
       timestamp: new Date().toISOString(),
       cwd,
       toolName: "decision-router-toggle",
-      questions: [{ id: "enabled", prompt: "Enable unattended decisions?", options: ["on", "off"] }],
+      questions: [
+        { id: "enabled", prompt: "Enable unattended decisions?", options: ["on", "off"] },
+        { id: "autoCompactionEnabled", prompt: "Enable auto compaction?", options: ["on", "off"] },
+      ],
       answers: [{
         id: "enabled",
         value: enabled ? "on" : "off",
         label: enabled ? "ON" : "OFF",
         source: "fallback",
         reason: "Manual toggle command.",
+      }, {
+        id: "autoCompactionEnabled",
+        value: enabled ? "on" : "off",
+        label: enabled ? "ON" : "OFF",
+        source: "fallback",
+        reason: "Manual toggle command switches Router Mode as one unit.",
       }],
       child: { attempted: false, status: "disabled" },
     });
@@ -531,6 +559,9 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
       resumeAfterCompaction: false,
     },
   };
+  const modeStateFile = modeStatePath();
+  // Restore Persisted Mode for this directory before the first toggle can run.
+  const restorePromise = restorePersistedMode(router, process.cwd()).catch(() => undefined);
 
   for (const name of REGISTERED_TOOL_NAMES) {
     registerDecisionTool(pi, router, name);
@@ -541,12 +572,17 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
     description: "Toggle unattended decisions on/off (press Enter to switch)",
     handler: async (_args, ctx) => {
       runtime.context = ctx;
-      setEnabled(router, ctx, !router.config.enabled);
+      await restorePromise;
+      setRouterMode(router, ctx, !router.config.enabled);
+      const saved = await writePersistedMode(modeStateFile, ctx.cwd, {
+        enabled: router.config.enabled,
+        autoCompactionEnabled: router.config.autoCompactionEnabled,
+      });
       syncCanonicalTool(pi, runtime, router.config.enabled);
       installUiShim(ctx, router, runtime);
       if (ctx.hasUI) {
         ctx.ui.notify(
-          `Pi Decision Router: ${router.config.enabled ? "ON" : "OFF"}\nEnter ${TOGGLE_COMMAND} again to switch.`,
+          `Pi Decision Router: ${router.config.enabled ? "ON" : "OFF"}${saved ? " (saved for this project)" : " (state file unwritable; session-local only)"}\nEnter ${TOGGLE_COMMAND} again to switch.`,
           "info",
         );
       }
@@ -628,6 +664,7 @@ export default function decisionRouterExtension(pi: ExtensionAPI): void {
           `toggle: ${TOGGLE_COMMAND} (press Enter to switch)`,
           `child: ${router.config.childEnabled}`,
           `auto compaction: ${router.config.autoCompactionEnabled}`,
+          `mode state: ${modeStateFile}`,
           `compaction threshold: ${router.config.autoCompactionThresholdPercent}%`,
           `compaction emergency: ${router.config.autoCompactionEmergencyPercent}%`,
           `timeout: ${router.config.timeoutMs}ms`,

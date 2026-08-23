@@ -62,8 +62,13 @@ Run `/decision-router-toggle` and press Enter to switch between `ON` and `OFF`.
 While `OFF`, the canonical `decision_request` tool is removed from the active
 tool list, supported UI adapters delegate to Pi's native dialogs, and the
 router does not inject its automatic-decision guidance into the agent prompt.
-The toggle lasts for the current Pi process only; use
-`PI_DECISION_ROUTER_ENABLED=0` for a disabled startup.
+The toggle switches Router Mode as one unit: routing and auto compaction
+flip together, and the choice is saved per project directory in
+`~/.pi/agent/pi-decision-router/state.json`, so the next session in the same
+directory starts with the mode you left it in. An explicitly set
+`PI_DECISION_ROUTER_ENABLED` or `PI_DECISION_ROUTER_AUTO_COMPACTION`
+environment variable still wins over the persisted state; use
+`PI_DECISION_ROUTER_ENABLED=0` for a deterministic disabled startup.
 
 ## Automatic compaction
 
