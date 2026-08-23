@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2026-08-23
+
+### Maintenance
+
+- Version housekeeping release via pull request; no functional changes since 0.2.0.
+
 ## [0.2.0] - 2026-08-23
 
 ### Added
