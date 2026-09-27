@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 - 2026-09-27
+
+- chore: periodic patch bump after 7+ days without npm publish
+
 ## [0.3.0] - 2026-08-23
 
 ### Maintenance
