@@ -1,6 +1,6 @@
 {
   "name": "pi-decision-router",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Route Pi questions and confirmations to a child Pi agent with deterministic fallback and JSONL audit logging.",
   "type": "module",
   "license": "MIT",
@@ -52,7 +52,7 @@
     "typebox": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.83.0",
+    "@earendil-works/pi-coding-agent": "^0.99.1",
     "@types/node": "^26.0.0",
     "typebox": "latest",
     "typescript": "^7.0.2"
