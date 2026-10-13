@@ -1,0 +1,9 @@
+# Pi SDK 1.1.0 compatibility
+
+This package is checked against the frozen SDK wave: `@earendil-works/pi-agent-core`, `pi-ai`, `pi-coding-agent`, and `pi-tui` are pinned to `1.1.0` for development and tests. Public peer dependency ranges remain unchanged.
+
+The migration findings in the merged [`pi-extension-template` baseline PR #130](https://github.com/eiei114/pi-extension-template/pull/130) apply here: the extension entrypoint, `registerTool`, shared extension event bus, TypeBox schemas, `ctx.hasUI`, and current UI context lifecycle remain supported by 1.1.0. No deprecated API replacement was needed; the package typechecks against the pinned SDK and the smoke harness loads it in the actual Pi host.
+
+Run `npm run smoke:pi` to execute the five cases recorded in `docs/verification/pi-sdk-smoke.json`. It starts the checkout's installed Pi CLI in isolated RPC processes. A test-only companion extension emits the package's real `rpiv:ask-user:prompt` event and awaits `ctx.ui.custom`; the router, event adapter, fallback selection, audit write, extension loader, and disposal are the package's real implementations. Model inference is deliberately omitted: the positive path uses the deterministic local fallback, and the error path launches a deliberately missing child executable to prove that failure is handled and audited. Neither the Pi host nor the package feature path is mocked.
+
+The reload case asserts registration and the feature response from a second Pi process, as well as successful exit of both processes without unhandled/shutdown errors. The host-shell case invokes the pinned local CLI through native Windows PowerShell (or `/bin/sh` on POSIX) and checks the exact version. All processes have a 15-second deadline. The harness uses a temporary `PI_CODING_AGENT_DIR` and audit path; it does not modify global Pi settings or make paid inference requests.
