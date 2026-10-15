@@ -23,16 +23,16 @@ const payload = {
 };
 const feature = { type: "extension_ui_request", method: "notify", message: `${RESULT_PREFIX}${JSON.stringify(payload)}` };
 const observed = (responses = [status, toolRegistration, prompt, feature], fullOutput = "", exit_code = 0,
-  process_exit_codes = [exit_code]) => ({ responses, fullOutput, exit_code, process_exit_codes, expectedVersion: "1.1.0" });
+  process_exit_codes = [exit_code]) => ({ responses, fullOutput, exit_code, process_exit_codes, expectedVersion: "1.2.0" });
 const run = (name, options) => behaviorAssertions(name, observed(...options));
 
 test("contract names and JSONL parser are stable", () => {
   assert.equal(VERIFICATION_CONTRACT, "pi-sdk-behavior-v2");
   assert.deepEqual(EXPECTED_SDK_VERSIONS, {
-    "@earendil-works/pi-agent-core": "1.1.0",
-    "@earendil-works/pi-ai": "1.1.0",
-    "@earendil-works/pi-coding-agent": "1.1.0",
-    "@earendil-works/pi-tui": "1.1.0",
+    "@earendil-works/pi-agent-core": "1.2.0",
+    "@earendil-works/pi-ai": "1.2.0",
+    "@earendil-works/pi-coding-agent": "1.2.0",
+    "@earendil-works/pi-tui": "1.2.0",
   });
   assert.deepEqual(parseJsonLines(`not-json\r\n${JSON.stringify(prompt)}\n\n`), [prompt]);
 });
@@ -92,8 +92,8 @@ test("extension loading errors are detected in RPC records and diagnostics", () 
 });
 
 test("native shell assertion requires the exact version and zero exit", () => {
-  assert.equal(behaviorAssertions("host_shell", observed([], "1.1.0\r\n"))[0].passed, true);
-  for (const [output, exitCode] of [["", 0], ["11.1.0", 0], ["1.1.0 plus warning", 0], ["1.1.0", 1]]) {
+  assert.equal(behaviorAssertions("host_shell", observed([], "1.2.0\r\n"))[0].passed, true);
+  for (const [output, exitCode] of [["", 0], ["11.2.0", 0], ["1.2.0 plus warning", 0], ["1.2.0", 1]]) {
     assert.equal(behaviorAssertions("host_shell", observed([], output, exitCode))[0].passed, false);
   }
 });

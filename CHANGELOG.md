@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.3] - 2026-10-16
+
+### Changed
+
+- Verify compatibility with Pi SDK 1.2.0 and update the development/test pins.
+
 ## 0.3.1 - 2026-09-27
 
 - chore: periodic patch bump after 7+ days without npm publish

@@ -21,6 +21,35 @@ test("registers only the conflict-free canonical tool", () => {
   assert.deepEqual(tools, ["decision_request"]);
 });
 
+test("adds router guidance to both user and custom before-agent-start events", async () => {
+  const previousEnabled = process.env.PI_DECISION_ROUTER_ENABLED;
+  process.env.PI_DECISION_ROUTER_ENABLED = "1";
+
+  try {
+    const lifecycle = new Map();
+    extension({
+      registerTool() {},
+      registerCommand() {},
+      on(name, handler) { lifecycle.set(name, handler); },
+      events: { on() { return () => {}; } },
+    });
+
+    const handler = lifecycle.get("before_agent_start");
+    const guidance = "[pi-decision-router] Routine questions and confirmations are handled automatically.";
+    for (const event of [
+      { messageType: "user", prompt: "question", images: [], systemPrompt: "Base prompt" },
+      { messageType: "custom", message: "resume", systemPrompt: "Base prompt" },
+    ]) {
+      const result = await handler(event);
+      assert.ok(result.systemPrompt.startsWith("Base prompt\n\n"));
+      assert.ok(result.systemPrompt.includes(guidance));
+    }
+  } finally {
+    if (previousEnabled === undefined) delete process.env.PI_DECISION_ROUTER_ENABLED;
+    else process.env.PI_DECISION_ROUTER_ENABLED = previousEnabled;
+  }
+});
+
 test("routes Pi UI dialogs and rpiv questionnaire events", async () => {
   const directory = await mkdtemp(join(tmpdir(), "pi-decision-router-extension-"));
   const previousChild = process.env.PI_DECISION_ROUTER_CHILD;
