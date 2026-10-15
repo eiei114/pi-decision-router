@@ -5,7 +5,7 @@ export const SDK_NAMES = [
   "@earendil-works/pi-coding-agent",
   "@earendil-works/pi-tui",
 ];
-export const EXPECTED_SDK_VERSIONS = Object.fromEntries(SDK_NAMES.map((name) => [name, "1.1.0"]));
+export const EXPECTED_SDK_VERSIONS = Object.fromEntries(SDK_NAMES.map((name) => [name, "1.2.0"]));
 export const LOAD_PREFIX = "PI_DECISION_ROUTER_SMOKE_LOAD:";
 export const RESULT_PREFIX = "PI_DECISION_ROUTER_SMOKE_RESULT:";
 export const UNHANDLED_ERROR_PATTERN = /UnhandledPromiseRejection|uncaught exception|shutdown error/i;
@@ -55,7 +55,7 @@ export function behaviorAssertions(name, {
   fullOutput = "",
   exit_code = 1,
   process_exit_codes = [exit_code],
-  expectedVersion = "1.1.0",
+  expectedVersion = "1.2.0",
 }) {
   if (name === "extension_load") {
     const status = statusRecord(responses);

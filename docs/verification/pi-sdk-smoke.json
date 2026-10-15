@@ -2,10 +2,10 @@
   "schema_version": 1,
   "verification_contract": "pi-sdk-behavior-v2",
   "sdk_versions": {
-    "@earendil-works/pi-agent-core": "1.1.0",
-    "@earendil-works/pi-ai": "1.1.0",
-    "@earendil-works/pi-coding-agent": "1.1.0",
-    "@earendil-works/pi-tui": "1.1.0"
+    "@earendil-works/pi-agent-core": "1.2.0",
+    "@earendil-works/pi-ai": "1.2.0",
+    "@earendil-works/pi-coding-agent": "1.2.0",
+    "@earendil-works/pi-tui": "1.2.0"
   },
   "platform": "win32",
   "model_inference": "none; actual Pi RPC hosts load the package and exercise its extension event adapter with a deterministic local fallback",
@@ -17,12 +17,12 @@
       "command": "npm run smoke:pi",
       "exit_code": 0,
       "passed": true,
-      "evidence": "[extension-load]\n{\"type\":\"extension_ui_request\",\"id\":\"9049a88e-ec2b-4665-ad7a-e6fd85439bf5\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"cf0056cf-fdf9-4d48-8443-923e906f8162\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_LOAD:{\\\"toolNames\\\":[\\\"read\\\",\\\"bash\\\",\\\"powershell\\\",\\\"edit\\\",\\\"write\\\",\\\"grep\\\",\\\"find\\\",\\\"ls\\\",\\\"decision_request\\\"]}\",\"notifyType\":\"info\"}\n{\"id\":\"load-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
+      "evidence": "[extension-load]\n{\"type\":\"extension_ui_request\",\"id\":\"e0910ef2-7f50-4c9c-a9c6-8e0d7c1cd069\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"779b1a34-e009-4899-a288-9fdb72049ba9\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_LOAD:{\\\"toolNames\\\":[\\\"read\\\",\\\"bash\\\",\\\"powershell\\\",\\\"edit\\\",\\\"write\\\",\\\"grep\\\",\\\"find\\\",\\\"ls\\\",\\\"decision_request\\\"]}\",\"notifyType\":\"info\"}\n{\"id\":\"load-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
       "assertions": [
         {
           "id": "extension_registered",
           "expected": "Actual Pi starts the package extension, emits its enabled status, and exposes decision_request",
-          "observed": "{\"status\":{\"type\":\"extension_ui_request\",\"id\":\"9049a88e-ec2b-4665-ad7a-e6fd85439bf5\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"},\"toolNames\":[\"read\",\"bash\",\"powershell\",\"edit\",\"write\",\"grep\",\"find\",\"ls\",\"decision_request\"]}",
+          "observed": "{\"status\":{\"type\":\"extension_ui_request\",\"id\":\"e0910ef2-7f50-4c9c-a9c6-8e0d7c1cd069\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"},\"toolNames\":[\"read\",\"bash\",\"powershell\",\"edit\",\"write\",\"grep\",\"find\",\"ls\",\"decision_request\"]}",
           "passed": true
         }
       ]
@@ -32,7 +32,7 @@
       "command": "npm run smoke:pi",
       "exit_code": 0,
       "passed": true,
-      "evidence": "[happy-path]\n{\"type\":\"extension_ui_request\",\"id\":\"b34fe36a-059b-47db-88ae-a3ceecb97f6b\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"0112b013-a40c-4475-a728-13077b9ce192\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_RESULT:{\\\"result\\\":{\\\"answers\\\":[{\\\"questionIndex\\\":0,\\\"question\\\":\\\"Choose the SDK smoke-test scope\\\",\\\"kind\\\":\\\"option\\\",\\\"answer\\\":\\\"Minimal (Recommended)\\\"}],\\\"cancelled\\\":false},\\\"audit\\\":{\\\"toolName\\\":\\\"rpiv:ask-user:prompt\\\",\\\"answers\\\":[{\\\"id\\\":\\\"scope\\\",\\\"value\\\":\\\"minimal\\\",\\\"label\\\":\\\"Minimal (Recommended)\\\",\\\"reason\\\":\\\"Child agent was unavailable or returned an invalid answer; fallback policy selected the recommended/default option or first option.\\\",\\\"confidence\\\":0.75,\\\"source\\\":\\\"fallback\\\"}],\\\"child\\\":{\\\"attempted\\\":false,\\\"status\\\":\\\"fallback\\\",\\\"command\\\":\\\"disabled\\\",\\\"error\\\":\\\"child agent disabled\\\"}}}\",\"notifyType\":\"info\"}\n{\"id\":\"feature-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
+      "evidence": "[happy-path]\n{\"type\":\"extension_ui_request\",\"id\":\"01d8ba6c-a5d9-40bd-ac75-cb4873cffe16\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"b214da37-98c9-4c84-aa22-c06e72f7b9c3\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_RESULT:{\\\"result\\\":{\\\"answers\\\":[{\\\"questionIndex\\\":0,\\\"question\\\":\\\"Choose the SDK smoke-test scope\\\",\\\"kind\\\":\\\"option\\\",\\\"answer\\\":\\\"Minimal (Recommended)\\\"}],\\\"cancelled\\\":false},\\\"audit\\\":{\\\"toolName\\\":\\\"rpiv:ask-user:prompt\\\",\\\"answers\\\":[{\\\"id\\\":\\\"scope\\\",\\\"value\\\":\\\"minimal\\\",\\\"label\\\":\\\"Minimal (Recommended)\\\",\\\"reason\\\":\\\"Child agent was unavailable or returned an invalid answer; fallback policy selected the recommended/default option or first option.\\\",\\\"confidence\\\":0.75,\\\"source\\\":\\\"fallback\\\"}],\\\"child\\\":{\\\"attempted\\\":false,\\\"status\\\":\\\"fallback\\\",\\\"command\\\":\\\"disabled\\\",\\\"error\\\":\\\"child agent disabled\\\"}}}\",\"notifyType\":\"info\"}\n{\"id\":\"feature-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
       "assertions": [
         {
           "id": "feature_response",
@@ -47,7 +47,7 @@
       "command": "npm run smoke:pi",
       "exit_code": 0,
       "passed": true,
-      "evidence": "[error-path]\n{\"type\":\"extension_ui_request\",\"id\":\"23e274a3-131b-40bd-abb0-071c83349030\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"35558454-aeb0-415e-aeb1-1da3c9ecad98\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_RESULT:{\\\"result\\\":{\\\"answers\\\":[{\\\"questionIndex\\\":0,\\\"question\\\":\\\"Choose the SDK smoke-test scope\\\",\\\"kind\\\":\\\"option\\\",\\\"answer\\\":\\\"Minimal (Recommended)\\\"}],\\\"cancelled\\\":false},\\\"audit\\\":{\\\"toolName\\\":\\\"rpiv:ask-user:prompt\\\",\\\"answers\\\":[{\\\"id\\\":\\\"scope\\\",\\\"value\\\":\\\"minimal\\\",\\\"label\\\":\\\"Minimal (Recommended)\\\",\\\"reason\\\":\\\"Child agent was unavailable or returned an invalid answer; fallback policy selected the recommended/default option or first option.\\\",\\\"confidence\\\":0.75,\\\"source\\\":\\\"fallback\\\"}],\\\"child\\\":{\\\"attempted\\\":true,\\\"status\\\":\\\"fallback\\\",\\\"model\\\":\\\"unknown\\\",\\\"command\\\":\\\"pi-sdk-smoke-missing.exe\\\",\\\"error\\\":\\\"spawn pi-sdk-smoke-missing.exe ENOENT\\\"}}}\",\"notifyType\":\"info\"}\n{\"id\":\"feature-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
+      "evidence": "[error-path]\n{\"type\":\"extension_ui_request\",\"id\":\"ca2a9e26-a857-495e-bfff-c0856ed1bd80\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"41d799b5-b50d-48a0-a360-f5f9233e1f2a\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_RESULT:{\\\"result\\\":{\\\"answers\\\":[{\\\"questionIndex\\\":0,\\\"question\\\":\\\"Choose the SDK smoke-test scope\\\",\\\"kind\\\":\\\"option\\\",\\\"answer\\\":\\\"Minimal (Recommended)\\\"}],\\\"cancelled\\\":false},\\\"audit\\\":{\\\"toolName\\\":\\\"rpiv:ask-user:prompt\\\",\\\"answers\\\":[{\\\"id\\\":\\\"scope\\\",\\\"value\\\":\\\"minimal\\\",\\\"label\\\":\\\"Minimal (Recommended)\\\",\\\"reason\\\":\\\"Child agent was unavailable or returned an invalid answer; fallback policy selected the recommended/default option or first option.\\\",\\\"confidence\\\":0.75,\\\"source\\\":\\\"fallback\\\"}],\\\"child\\\":{\\\"attempted\\\":true,\\\"status\\\":\\\"fallback\\\",\\\"model\\\":\\\"unknown\\\",\\\"command\\\":\\\"pi-sdk-smoke-missing.exe\\\",\\\"error\\\":\\\"spawn pi-sdk-smoke-missing.exe ENOENT\\\"}}}\",\"notifyType\":\"info\"}\n{\"id\":\"feature-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
       "assertions": [
         {
           "id": "handled_error",
@@ -62,12 +62,12 @@
       "command": "npm run smoke:pi",
       "exit_code": 0,
       "passed": true,
-      "evidence": "[reload-first-process]\n{\"type\":\"extension_ui_request\",\"id\":\"cabf34f6-243f-4575-8b5e-67acb493145e\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"0cd45f24-7141-48a5-baab-fdf107281203\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_LOAD:{\\\"toolNames\\\":[\\\"read\\\",\\\"bash\\\",\\\"powershell\\\",\\\"edit\\\",\\\"write\\\",\\\"grep\\\",\\\"find\\\",\\\"ls\\\",\\\"decision_request\\\"]}\",\"notifyType\":\"info\"}\n{\"id\":\"load-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n\n[reload-second-process]\n{\"type\":\"extension_ui_request\",\"id\":\"67c262ff-0c3a-49a1-bb03-d920e64a1e58\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"a541b27d-d1a7-40a8-b1b3-2a4ebc763585\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_RESULT:{\\\"result\\\":{\\\"answers\\\":[{\\\"questionIndex\\\":0,\\\"question\\\":\\\"Choose the SDK smoke-test scope\\\",\\\"kind\\\":\\\"option\\\",\\\"answer\\\":\\\"Minimal (Recommended)\\\"}],\\\"cancelled\\\":false},\\\"audit\\\":{\\\"toolName\\\":\\\"rpiv:ask-user:prompt\\\",\\\"answers\\\":[{\\\"id\\\":\\\"scope\\\",\\\"value\\\":\\\"minimal\\\",\\\"label\\\":\\\"Minimal (Recommended)\\\",\\\"reason\\\":\\\"Child agent was unavailable or returned an invalid answer; fallback policy selected the recommended/default option or first option.\\\",\\\"confidence\\\":0.75,\\\"source\\\":\\\"fallback\\\"}],\\\"child\\\":{\\\"attempted\\\":false,\\\"status\\\":\\\"fallback\\\",\\\"command\\\":\\\"disabled\\\",\\\"error\\\":\\\"child agent disabled\\\"}}}\",\"notifyType\":\"info\"}\n{\"id\":\"feature-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
+      "evidence": "[reload-first-process]\n{\"type\":\"extension_ui_request\",\"id\":\"d6932d45-15d1-4556-b2e0-bee0e8ea914e\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"3446db03-3438-4c5d-b0fa-7de618528992\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_LOAD:{\\\"toolNames\\\":[\\\"read\\\",\\\"bash\\\",\\\"powershell\\\",\\\"edit\\\",\\\"write\\\",\\\"grep\\\",\\\"find\\\",\\\"ls\\\",\\\"decision_request\\\"]}\",\"notifyType\":\"info\"}\n{\"id\":\"load-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n\n[reload-second-process]\n{\"type\":\"extension_ui_request\",\"id\":\"ac7ed7d5-1a9e-4aa5-af74-3082234b1aa2\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}\n{\"type\":\"extension_ui_request\",\"id\":\"c549d7a4-fb0b-418b-b19b-6097467e66a6\",\"method\":\"notify\",\"message\":\"PI_DECISION_ROUTER_SMOKE_RESULT:{\\\"result\\\":{\\\"answers\\\":[{\\\"questionIndex\\\":0,\\\"question\\\":\\\"Choose the SDK smoke-test scope\\\",\\\"kind\\\":\\\"option\\\",\\\"answer\\\":\\\"Minimal (Recommended)\\\"}],\\\"cancelled\\\":false},\\\"audit\\\":{\\\"toolName\\\":\\\"rpiv:ask-user:prompt\\\",\\\"answers\\\":[{\\\"id\\\":\\\"scope\\\",\\\"value\\\":\\\"minimal\\\",\\\"label\\\":\\\"Minimal (Recommended)\\\",\\\"reason\\\":\\\"Child agent was unavailable or returned an invalid answer; fallback policy selected the recommended/default option or first option.\\\",\\\"confidence\\\":0.75,\\\"source\\\":\\\"fallback\\\"}],\\\"child\\\":{\\\"attempted\\\":false,\\\"status\\\":\\\"fallback\\\",\\\"command\\\":\\\"disabled\\\",\\\"error\\\":\\\"child agent disabled\\\"}}}\",\"notifyType\":\"info\"}\n{\"id\":\"feature-command\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}}\n",
       "assertions": [
         {
           "id": "reloaded_extension_registered",
           "expected": "The second actual Pi process emits the package's enabled extension status",
-          "observed": "{\"type\":\"extension_ui_request\",\"id\":\"67c262ff-0c3a-49a1-bb03-d920e64a1e58\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}",
+          "observed": "{\"type\":\"extension_ui_request\",\"id\":\"ac7ed7d5-1a9e-4aa5-af74-3082234b1aa2\",\"method\":\"setStatus\",\"statusKey\":\"pi-decision-router\",\"statusText\":\"Decision Router: [ON] | Enter /decision-router-toggle to switch\"}",
           "passed": true
         },
         {
@@ -89,12 +89,12 @@
       "command": "npm run smoke:pi",
       "exit_code": 0,
       "passed": true,
-      "evidence": "1.1.0\n",
+      "evidence": "1.2.0\n",
       "assertions": [
         {
           "id": "native_shell_boundary",
           "expected": "The native host shell launches this checkout's pinned Pi CLI and returns its exact version",
-          "observed": "{\"exit_code\":0,\"output\":\"1.1.0\",\"expectedVersion\":\"1.1.0\"}",
+          "observed": "{\"exit_code\":0,\"output\":\"1.2.0\",\"expectedVersion\":\"1.2.0\"}",
           "passed": true
         }
       ]
