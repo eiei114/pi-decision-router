@@ -92,6 +92,7 @@ test("extension loading errors are detected in RPC records and diagnostics", () 
 });
 
 test("native shell assertion requires the exact version and zero exit", () => {
+  assert.equal(behaviorAssertions("host_shell", { fullOutput: "1.5.0\r\n", exit_code: 0 })[0].passed, true);
   assert.equal(behaviorAssertions("host_shell", observed([], "1.5.0\r\n"))[0].passed, true);
   for (const [output, exitCode] of [["", 0], ["1.2.0", 0], ["11.5.0", 0], ["1.5.0 plus warning", 0], ["1.5.0", 1]]) {
     assert.equal(behaviorAssertions("host_shell", observed([], output, exitCode))[0].passed, false);
