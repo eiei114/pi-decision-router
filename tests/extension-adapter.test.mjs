@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { validateToolArguments } from "@earendil-works/pi-ai";
 import extension from "../extensions/index.ts";
 
 test("registers only the conflict-free canonical tool", () => {
@@ -19,6 +20,42 @@ test("registers only the conflict-free canonical tool", () => {
 
   extension(pi);
   assert.deepEqual(tools, ["decision_request"]);
+});
+
+test("decision_request arguments pass the Pi SDK tool-argument validator", () => {
+  const tools = [];
+  extension({
+    registerTool(tool) { tools.push(tool); },
+    registerCommand() {},
+    on() {},
+    appendEntry() {},
+    events: { on() { return () => {}; } },
+  });
+  const tool = tools.find((candidate) => candidate.name === "decision_request");
+  assert.ok(tool);
+
+  const validate = (args) => validateToolArguments(tool, {
+    type: "toolCall",
+    id: "call-1",
+    name: "decision_request",
+    arguments: args,
+  });
+
+  const full = {
+    id: "deploy",
+    question: "Proceed?",
+    context: "release prep",
+    options: [{ label: "Yes", value: "yes", description: "continue" }, { label: "No" }],
+    questions: [{ id: "q1", question: "Which?", options: [{ label: "a" }], allowOther: true, multiSelect: false }],
+    allowOther: false,
+    multiSelect: false,
+    extra: { kept: true },
+  };
+  assert.deepEqual(validate(full), full);
+  assert.deepEqual(validate({}), {});
+  assert.deepEqual(validate({ question: 42 }), { question: "42" });
+  assert.throws(() => validate({ allowOther: "maybe" }), /allowOther: expected boolean/);
+  assert.throws(() => validate({ options: [{ label: { nested: true } }] }), /options.0.label: expected string/);
 });
 
 test("adds router guidance to both user and custom before-agent-start events", async () => {
