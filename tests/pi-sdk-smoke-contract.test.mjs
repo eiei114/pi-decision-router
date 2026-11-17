@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   behaviorAssertions,
@@ -22,18 +23,17 @@ const payload = {
     child: { attempted: false, status: "fallback", error: "child agent disabled" } },
 };
 const feature = { type: "extension_ui_request", method: "notify", message: `${RESULT_PREFIX}${JSON.stringify(payload)}` };
+const expectedSdkVersion = EXPECTED_SDK_VERSIONS["@earendil-works/pi-coding-agent"];
 const observed = (responses = [status, toolRegistration, prompt, feature], fullOutput = "", exit_code = 0,
-  process_exit_codes = [exit_code]) => ({ responses, fullOutput, exit_code, process_exit_codes, expectedVersion: "1.5.0" });
+  process_exit_codes = [exit_code]) => ({ responses, fullOutput, exit_code, process_exit_codes, expectedVersion: expectedSdkVersion });
 const run = (name, options) => behaviorAssertions(name, observed(...options));
 
 test("contract names and JSONL parser are stable", () => {
   assert.equal(VERIFICATION_CONTRACT, "pi-sdk-behavior-v2");
-  assert.deepEqual(EXPECTED_SDK_VERSIONS, {
-    "@earendil-works/pi-agent-core": "1.5.0",
-    "@earendil-works/pi-ai": "1.5.0",
-    "@earendil-works/pi-coding-agent": "1.5.0",
-    "@earendil-works/pi-tui": "1.5.0",
-  });
+  const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.deepEqual(EXPECTED_SDK_VERSIONS, Object.fromEntries(
+    Object.keys(EXPECTED_SDK_VERSIONS).map((name) => [name, manifest.devDependencies[name]]),
+  ));
   assert.deepEqual(parseJsonLines(`not-json\r\n${JSON.stringify(prompt)}\n\n`), [prompt]);
 });
 
@@ -92,9 +92,9 @@ test("extension loading errors are detected in RPC records and diagnostics", () 
 });
 
 test("native shell assertion requires the exact version and zero exit", () => {
-  assert.equal(behaviorAssertions("host_shell", { fullOutput: "1.5.0\r\n", exit_code: 0 })[0].passed, true);
-  assert.equal(behaviorAssertions("host_shell", observed([], "1.5.0\r\n"))[0].passed, true);
-  for (const [output, exitCode] of [["", 0], ["1.2.0", 0], ["11.5.0", 0], ["1.5.0 plus warning", 0], ["1.5.0", 1]]) {
+  assert.equal(behaviorAssertions("host_shell", { fullOutput: `${expectedSdkVersion}\r\n`, exit_code: 0 })[0].passed, true);
+  assert.equal(behaviorAssertions("host_shell", observed([], `${expectedSdkVersion}\r\n`))[0].passed, true);
+  for (const [output, exitCode] of [["", 0], ["1.2.0", 0], ["11.5.0", 0], [`${expectedSdkVersion} plus warning`, 0], [expectedSdkVersion, 1]]) {
     assert.equal(behaviorAssertions("host_shell", observed([], output, exitCode))[0].passed, false);
   }
 });

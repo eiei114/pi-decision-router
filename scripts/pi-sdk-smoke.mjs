@@ -18,11 +18,9 @@ const reportPath = process.argv.includes("--update-curated-report")
   : resolve(root, ".tmp/pi-sdk-smoke.json");
 const driverPath = resolve(root, "tests/fixtures/pi-sdk-smoke-driver.mjs");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
-const manifest = readJson(resolve(root, "package.json"));
 const sdkVersions = Object.fromEntries(SDK_NAMES.map((name) => {
   const installedVersion = readJson(resolve(root, "node_modules", name, "package.json")).version;
-  if (manifest.devDependencies?.[name] !== EXPECTED_SDK_VERSIONS[name]
-    || installedVersion !== EXPECTED_SDK_VERSIONS[name]) {
+  if (installedVersion !== EXPECTED_SDK_VERSIONS[name]) {
     throw new Error(`Smoke requires exact ${EXPECTED_SDK_VERSIONS[name]} dev/test pin for ${name}; installed ${installedVersion}`);
   }
   return [name, installedVersion];
