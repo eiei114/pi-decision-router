@@ -60,6 +60,7 @@ The package is enabled by default for unattended operation.
 | `PI_DECISION_ROUTER_PROVIDER` | current provider | Child Pi provider. |
 | `PI_DECISION_ROUTER_PI_BIN` | auto | Explicit Pi executable path. |
 | `PI_DECISION_ROUTER_AUDIT_LOG` | `~/.pi/agent/pi-decision-router/audit.jsonl` | JSONL audit path. |
+| `PI_DECISION_ROUTER_MAX_CONTEXT_CHARS` | `12000` | Maximum conversation-context characters sent to the child decision agent. Set a smaller positive integer to reduce this; `0` uses the default, and values above `12000` remain capped at `12000`. |
 
 Useful commands:
 
