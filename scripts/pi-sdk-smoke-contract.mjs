@@ -1,3 +1,7 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 export const VERIFICATION_CONTRACT = "pi-sdk-behavior-v2";
 export const SDK_NAMES = [
   "@earendil-works/pi-agent-core",
@@ -5,7 +9,15 @@ export const SDK_NAMES = [
   "@earendil-works/pi-coding-agent",
   "@earendil-works/pi-tui",
 ];
-export const EXPECTED_SDK_VERSIONS = Object.fromEntries(SDK_NAMES.map((name) => [name, "1.5.0"]));
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+export const EXPECTED_SDK_VERSIONS = Object.fromEntries(SDK_NAMES.map((name) => {
+  const pin = manifest.devDependencies?.[name];
+  if (typeof pin !== "string" || pin.trim().length === 0) {
+    throw new Error(`Missing dev/test pin for ${name} in package.json`);
+  }
+  return [name, pin];
+}));
 export const LOAD_PREFIX = "PI_DECISION_ROUTER_SMOKE_LOAD:";
 export const RESULT_PREFIX = "PI_DECISION_ROUTER_SMOKE_RESULT:";
 export const UNHANDLED_ERROR_PATTERN = /UnhandledPromiseRejection|uncaught exception|shutdown error/i;
@@ -55,7 +67,7 @@ export function behaviorAssertions(name, {
   fullOutput = "",
   exit_code = 1,
   process_exit_codes = [exit_code],
-  expectedVersion = "1.5.0",
+  expectedVersion = EXPECTED_SDK_VERSIONS["@earendil-works/pi-coding-agent"],
 }) {
   if (name === "extension_load") {
     const status = statusRecord(responses);
