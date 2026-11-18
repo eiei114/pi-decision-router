@@ -18,3 +18,15 @@ test("README keeps the unattended boundary visible", async () => {
   assert.match(readme, /auto-approves routine decisions/);
   assert.match(readme, /decision-router-toggle/);
 });
+
+test("README documents every PI_DECISION_ROUTER environment variable", async () => {
+  const config = await readFile(new URL("../lib/config.ts", import.meta.url), "utf8");
+  const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+  const variables = [...config.matchAll(/env\.(PI_DECISION_ROUTER_[A-Z0-9_]+)/g)]
+    .map((match) => match[1]);
+
+  assert.ok(variables.length > 0, "expected config to read PI_DECISION_ROUTER variables");
+  for (const variable of variables) {
+    assert.ok(readme.includes(variable), `README.md does not document ${variable}`);
+  }
+});

@@ -6,6 +6,9 @@ that routine confirmations are no longer human gates.
 - The child decision agent has no tools and cannot edit the project.
 - The parent Pi still executes the selected workflow after a decision.
 - Project trust is auto-approved and remembered for the current trust event.
+- `PI_DECISION_ROUTER_MAX_CONTEXT_CHARS` bounds the conversation excerpt sent to
+  the child decision agent; lower it to reduce how much session text leaves the
+  parent process.
 - The audit log is local JSONL, not encrypted, and may contain sensitive text.
 - Unknown question tools are not blocked; they remain visible so a caller does
   not receive a fabricated answer from an unsupported schema.
