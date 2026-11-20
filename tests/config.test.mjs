@@ -21,3 +21,31 @@ test("automatic compaction thresholds and switch are configurable", () => {
   assert.equal(config.autoCompactionThresholdPercent, 90.5);
   assert.equal(config.autoCompactionEmergencyPercent, 99.5);
 });
+
+test("maximum child context characters defaults to 12,000 for missing, zero, or invalid values", () => {
+  for (const value of [undefined, "0", "invalid"]) {
+    const config = loadConfig({
+      ...(value === undefined ? {} : { PI_DECISION_ROUTER_MAX_CONTEXT_CHARS: value }),
+    }, "C:/tmp/pi-decision-router");
+
+    assert.equal(config.maxContextChars, 12_000);
+  }
+});
+
+test("maximum child context characters accepts values below the 12,000 cap", () => {
+  const config = loadConfig({ PI_DECISION_ROUTER_MAX_CONTEXT_CHARS: "8000" }, "C:/tmp/pi-decision-router");
+
+  assert.equal(config.maxContextChars, 8_000);
+});
+
+test("maximum child context characters accepts the exact 12,000 cap", () => {
+  const config = loadConfig({ PI_DECISION_ROUTER_MAX_CONTEXT_CHARS: "12000" }, "C:/tmp/pi-decision-router");
+
+  assert.equal(config.maxContextChars, 12_000);
+});
+
+test("maximum child context characters clamps values above 12,000", () => {
+  const config = loadConfig({ PI_DECISION_ROUTER_MAX_CONTEXT_CHARS: "16000" }, "C:/tmp/pi-decision-router");
+
+  assert.equal(config.maxContextChars, 12_000);
+});

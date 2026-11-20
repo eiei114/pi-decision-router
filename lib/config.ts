@@ -43,7 +43,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, home = homedir(
     autoCompactionEmergencyPercent: readPercentage(env.PI_DECISION_ROUTER_COMPACTION_EMERGENCY_PERCENT, 100),
     timeoutMs: readPositiveInteger(env.PI_DECISION_ROUTER_TIMEOUT_MS, 45_000),
     auditLogPath: env.PI_DECISION_ROUTER_AUDIT_LOG || defaultAuditLogPath(home),
-    maxContextChars: readPositiveInteger(env.PI_DECISION_ROUTER_MAX_CONTEXT_CHARS, 12_000),
+    maxContextChars: Math.min(readPositiveInteger(env.PI_DECISION_ROUTER_MAX_CONTEXT_CHARS, 12_000), 12_000),
     piBin: env.PI_DECISION_ROUTER_PI_BIN || env.PI_BIN,
     provider: env.PI_DECISION_ROUTER_PROVIDER,
     model: env.PI_DECISION_ROUTER_MODEL,
