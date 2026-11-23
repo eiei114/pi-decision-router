@@ -22,6 +22,28 @@ test("automatic compaction thresholds and switch are configurable", () => {
   assert.equal(config.autoCompactionEmergencyPercent, 99.5);
 });
 
+for (const [value, threshold, emergency] of [
+  ["", 95, 100],
+  [" \t\n", 95, 100],
+  ["0", 0, 0],
+  [" 90.5 ", 90.5, 90.5],
+  ["100", 100, 100],
+  ["invalid", 95, 100],
+  ["Infinity", 95, 100],
+  ["-1", 95, 100],
+  ["101", 95, 100],
+]) {
+  test(`automatic compaction parses both thresholds for ${JSON.stringify(value)}`, () => {
+    const config = loadConfig({
+      PI_DECISION_ROUTER_COMPACTION_THRESHOLD_PERCENT: value,
+      PI_DECISION_ROUTER_COMPACTION_EMERGENCY_PERCENT: value,
+    });
+
+    assert.equal(config.autoCompactionThresholdPercent, threshold);
+    assert.equal(config.autoCompactionEmergencyPercent, emergency);
+  });
+}
+
 test("maximum child context characters defaults to 12,000 for missing, zero, or invalid values", () => {
   for (const value of [undefined, "0", "invalid"]) {
     const config = loadConfig({
