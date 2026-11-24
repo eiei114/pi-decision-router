@@ -25,6 +25,15 @@ function readPositiveInteger(value: string | undefined, fallback: number): numbe
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+const DEFAULT_CHILD_TIMEOUT_MS = 45_000;
+// Node treats delays above this limit as 1 ms.
+const MAX_NODE_TIMER_DELAY_MS = 2_147_483_647;
+
+function readChildTimeoutMs(value: string | undefined): number {
+  const timeoutMs = readPositiveInteger(value, DEFAULT_CHILD_TIMEOUT_MS);
+  return timeoutMs <= MAX_NODE_TIMER_DELAY_MS ? timeoutMs : DEFAULT_CHILD_TIMEOUT_MS;
+}
+
 function readPercentage(value: string | undefined, fallback: number): number {
   if (!value?.trim()) return fallback;
   const parsed = Number(value);
@@ -42,7 +51,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, home = homedir(
     autoCompactionEnabled: readBoolean(env.PI_DECISION_ROUTER_AUTO_COMPACTION, true),
     autoCompactionThresholdPercent: readPercentage(env.PI_DECISION_ROUTER_COMPACTION_THRESHOLD_PERCENT, 95),
     autoCompactionEmergencyPercent: readPercentage(env.PI_DECISION_ROUTER_COMPACTION_EMERGENCY_PERCENT, 100),
-    timeoutMs: readPositiveInteger(env.PI_DECISION_ROUTER_TIMEOUT_MS, 45_000),
+    timeoutMs: readChildTimeoutMs(env.PI_DECISION_ROUTER_TIMEOUT_MS),
     auditLogPath: env.PI_DECISION_ROUTER_AUDIT_LOG || defaultAuditLogPath(home),
     maxContextChars: Math.min(readPositiveInteger(env.PI_DECISION_ROUTER_MAX_CONTEXT_CHARS, 12_000), 12_000),
     piBin: env.PI_DECISION_ROUTER_PI_BIN || env.PI_BIN,
