@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { modeStatePath, readPersistedMode, writePersistedMode } from "../lib/mode-state.ts";
@@ -34,6 +34,37 @@ test("persisted entries are keyed per directory and survive unrelated writes", a
 
   assert.deepEqual(await readPersistedMode(path, "C:/proj-a"), { enabled: false, autoCompactionEnabled: false });
   assert.deepEqual(await readPersistedMode(path, "C:/proj-b"), { enabled: true, autoCompactionEnabled: true });
+});
+
+test("overlapping writes preserve both project modes in the same file", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-decision-router-mode-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const path = join(dir, "state.json");
+  const modeA = { enabled: false, autoCompactionEnabled: true };
+  const modeB = { enabled: true, autoCompactionEnabled: false };
+
+  const results = await Promise.all([
+    writePersistedMode(path, "C:/proj-a", modeA),
+    writePersistedMode(path, "C:/proj-b", modeB),
+  ]);
+
+  assert.deepEqual(results, [true, true]);
+  assert.deepEqual(await readPersistedMode(path, "C:/proj-a"), modeA);
+  assert.deepEqual(await readPersistedMode(path, "C:/proj-b"), modeB);
+});
+
+test("a failed write does not prevent a retry to the same destination", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-decision-router-mode-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const parent = join(dir, "not-a-directory");
+  const path = join(parent, "state.json");
+  const mode = { enabled: false, autoCompactionEnabled: true };
+  await writeFile(parent, "blocks directory creation", "utf8");
+
+  assert.equal(await writePersistedMode(path, "C:/proj", mode), false);
+  await rm(parent);
+  assert.equal(await writePersistedMode(path, "C:/proj", mode), true);
+  assert.deepEqual(await readPersistedMode(path, "C:/proj"), mode);
 });
 
 test("a corrupt state file reads as undefined and is replaced by the next toggle", async () => {
