@@ -44,6 +44,20 @@ for (const [value, threshold, emergency] of [
   });
 }
 
+test("child timeout accepts both endpoints of the Node timer range", () => {
+  for (const timeoutMs of [1, 2_147_483_647]) {
+    const config = loadConfig({ PI_DECISION_ROUTER_TIMEOUT_MS: String(timeoutMs) });
+    assert.equal(config.timeoutMs, timeoutMs);
+  }
+});
+
+for (const value of [undefined, "0", "-1", "1.5", "invalid", "Infinity", "2147483648", "9007199254740992"]) {
+  test(`child timeout defaults to 45,000 ms for ${JSON.stringify(value)}`, () => {
+    const config = loadConfig(value === undefined ? {} : { PI_DECISION_ROUTER_TIMEOUT_MS: value });
+    assert.equal(config.timeoutMs, 45_000);
+  });
+}
+
 test("maximum child context characters defaults to 12,000 for missing, zero, or invalid values", () => {
   for (const value of [undefined, "0", "invalid"]) {
     const config = loadConfig({
